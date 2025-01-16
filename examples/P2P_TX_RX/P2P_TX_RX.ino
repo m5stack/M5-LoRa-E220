@@ -1,23 +1,24 @@
-/**
- * @file main.cpp
- * @author SeanKwok (shaoxiang@m5stack.com)
- * @brief M5-LoRa-E220 Unit TX/RX Demo.
- * @version 0.2
- * @date 2023-10-19
+/*
+ * SPDX-FileCopyrightText: 2025 M5Stack Technology CO LTD
  *
- *
- * @Hardwares: M5Core,M5-LoRa-E220 Unit
+ * SPDX-License-Identifier: MIT
+ */
+/*
+ * @Hardwares: M5Core/M5Atom + M5-LoRa-E220 Unit
  * @Platform Version: Arduino M5Stack Board Manager v2.0.7
  * @Dependent Library:
  * M5_LoRa_E220: https://github.com/m5stack/M5-LoRa-E220
  * M5Unified: https://github.com/m5stack/M5Unified
- * M5GFX: https://github.com/m5stack/M5GFX
  */
 
 #include <M5Unified.h>
-#include <M5GFX.h>
 #include "M5_LoRa_E220.h"
 #include <Arduino.h>
+
+// Default port A. Note: Adjust the TX/RX pins as they may vary between devices.
+// For example, AtomS3R TX = 2, RX = 1.
+#define UART_TX_GPIO (17)
+#define UART_RX_GPIO (16)
 
 LoRa_E220 lora;
 struct LoRaConfigItem_t config;
@@ -29,36 +30,18 @@ void LoRaSendTask(void *pvParameters);
 void LoRaBtnTask(void *pvParameters);
 void ReadDataFromConsole(char *msg, int max_msg_len);
 
-M5GFX display;
-M5Canvas canvas(&display);
-
 void print_log(String info) {
-    canvas.println(info);
-    canvas.pushSprite(0, 0);
     Serial.println(info);
 }
-
-void gfx_canvas_init() {
-    display.begin();
-    canvas.setColorDepth(1);  // mono color
-    canvas.setFont(&fonts::efontCN_14);
-    canvas.createSprite(display.width(), display.height());
-    canvas.setTextSize(1);
-    canvas.setPaletteColor(1, GREEN);
-    canvas.setTextScroll(true);
-    canvas.println(">>LoRa E220 TEST");
-    canvas.pushSprite(0, 0);
-}
-
 void setup() {
     // put your setup code here, to run once:
     M5.begin();
-    gfx_canvas_init();
+
+    Serial.begin(115200);
     delay(1000);  // Serial init wait
 
-    // if use port a
-    // lora.Init(&Serial2, 9600, SERIAL_8N1, 22, 21);
-    lora.Init();
+    lora.Init(&Serial2, CONFIG_MODE_BAUD, SERIAL_8N1, UART_RX_GPIO,
+              UART_TX_GPIO);
 
     lora.SetDefaultConfigValue(config);
 
@@ -131,20 +114,16 @@ void LoRaRecvTask(void *pvParameters) {
             print_log("recv data:");
             for (int i = 0; i < data.recv_data_len; i++) {
                 Serial.printf("%c", data.recv_data[i]);
-                canvas.printf("%c", data.recv_data[i]);
             }
             print_log("");
             print_log("hex dump:");
             for (int i = 0; i < data.recv_data_len; i++) {
                 Serial.printf("%02x ", data.recv_data[i]);
-                canvas.printf("%02x ", data.recv_data[i]);
             }
             Serial.printf("\n");
             Serial.printf("RSSI: %d dBm\n", data.rssi);
-            canvas.printf("RSSI: %d dBm\n", data.rssi);
             Serial.printf("\n");
             Serial.flush();
-            canvas.pushSprite(0, 0);
         }
 
         delay(1);
